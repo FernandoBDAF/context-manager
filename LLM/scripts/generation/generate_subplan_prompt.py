@@ -310,8 +310,126 @@ def extract_execution_summary(execution_path: Path) -> Optional[str]:
         return None
 
 
-def generate_create_prompt(plan_path: Path, achievement_num: str) -> str:
-    """Generate prompt for creating SUBPLAN."""
+def generate_subplan_only_prompt(
+    plan_path: Path, achievement_num: str, achievement_section: str, current_status: Optional[str]
+) -> str:
+    """
+    Generate prompt for creating SUBPLAN ONLY (no EXECUTION_TASK).
+
+    This is used when the user wants to create just the SUBPLAN document
+    without immediately creating EXECUTION_TASK files. The EXECUTION_TASKs
+    can be created later using generate_execution_prompt.py.
+
+    Args:
+        plan_path: Path to PLAN file
+        achievement_num: Achievement number (e.g., "1.1")
+        achievement_section: Achievement section content from PLAN
+        current_status: Current status section from PLAN
+
+    Returns:
+        SUBPLAN-only prompt string
+    """
+    prompt = f"""Create SUBPLAN for Achievement {achievement_num} in @{plan_path.name}.
+
+═══════════════════════════════════════════════════════════════════════
+
+CONTEXT BOUNDARIES (Read ONLY These):
+
+✅ @{plan_path.name} - Achievement {achievement_num} section only ({len(achievement_section.split(chr(10)))} lines)
+
+✅ @{plan_path.name} - "Current Status & Handoff" section ({len(current_status.split(chr(10))) if current_status else 0} lines)
+
+❌ DO NOT READ: Full PLAN, other achievements, archived work
+
+CONTEXT BUDGET: {len(achievement_section.split(chr(10))) + (len(current_status.split(chr(10))) if current_status else 0)} lines maximum
+
+═══════════════════════════════════════════════════════════════════════
+
+ACHIEVEMENT {achievement_num}:
+
+{achievement_section}
+
+═══════════════════════════════════════════════════════════════════════
+
+YOUR TASK: Create SUBPLAN ONLY
+
+Step 1: Create SUBPLAN (MANDATORY)
+- File: SUBPLAN_[FEATURE]_{achievement_num.replace('.', '')}.md
+- Size: 200-600 lines
+- Must include: Objective, Deliverables, Approach, Execution Strategy, Tests, Expected Results
+- Reference: LLM/templates/SUBPLAN-TEMPLATE.md
+- Guide: LLM/guides/SUBPLAN-WORKFLOW-GUIDE.md (Phase 1: Design)
+
+Step 2: Plan Execution Strategy (MANDATORY)
+- Decide: Single or Multiple EXECUTIONs?
+- Decide: Parallel or Sequential?
+- Document in SUBPLAN "Execution Strategy" section
+- Reference: LLM/guides/SUBPLAN-WORKFLOW-GUIDE.md (Phase 2: Execution Planning)
+
+Step 3: Review and Finalize (MANDATORY)
+- Verify SUBPLAN is complete (200-600 lines)
+- Ensure all sections present
+- Document execution strategy clearly
+- Ready for EXECUTION_TASK creation (later step)
+
+═══════════════════════════════════════════════════════════════════════
+
+DO NOT:
+❌ Create EXECUTION_TASK files (that's a separate step)
+❌ Execute the work (that's the executor's job)
+❌ Skip SUBPLAN ("it's simple" - NO, all work needs SUBPLANs)
+❌ Mark achievement complete (only after executor finishes)
+❌ Read full PLAN (read Achievement {achievement_num} only)
+
+REMEMBER:
+✓ Create SUBPLAN document ONLY
+✓ Document execution strategy in SUBPLAN
+✓ EXECUTION_TASK files will be created later
+✓ Follow SUBPLAN-TEMPLATE.md structure
+
+═══════════════════════════════════════════════════════════════════════
+
+⚠️  CRITICAL: After Creating SUBPLAN
+
+When you finish creating the SUBPLAN file, YOUR JOB IS DONE (design phase complete).
+
+NEXT STEPS FOR USER (after SUBPLAN complete):
+→ User creates EXECUTION_TASK(s): generate_execution_prompt.py create @SUBPLAN_...
+→ User executes work: generate_execution_prompt.py continue @EXECUTION_TASK_...
+→ This is a TWO-STEP process (SUBPLAN first, then EXECUTION_TASK)
+
+DO NOT suggest creating EXECUTION_TASK files now!
+DO NOT suggest "What's next: Create EXECUTION_TASK"!
+
+The SUBPLAN creation is complete when:
+1. SUBPLAN file is created (200-600 lines)
+2. Execution strategy is documented
+
+After SUBPLAN is complete → user will create EXECUTION_TASK(s) separately
+
+═══════════════════════════════════════════════════════════════════════
+
+Now beginning SUBPLAN creation for Achievement {achievement_num}:
+
+Creating SUBPLAN document..."""
+
+    return prompt
+
+
+def generate_create_prompt(
+    plan_path: Path, achievement_num: str, subplan_only: bool = False
+) -> str:
+    """
+    Generate prompt for creating SUBPLAN.
+
+    Args:
+        plan_path: Path to PLAN file
+        achievement_num: Achievement number (e.g., "1.1")
+        subplan_only: If True, generate prompt for SUBPLAN only (no EXECUTION_TASK)
+
+    Returns:
+        Prompt string
+    """
     with open(plan_path, "r", encoding="utf-8") as f:
         plan_content = f.read()
 
@@ -320,6 +438,12 @@ def generate_create_prompt(plan_path: Path, achievement_num: str) -> str:
 
     if not achievement_section:
         return f"Error: Achievement {achievement_num} not found in PLAN"
+
+    # Generate SUBPLAN-only prompt if requested
+    if subplan_only:
+        return generate_subplan_only_prompt(
+            plan_path, achievement_num, achievement_section, current_status
+        )
 
     prompt = f"""Execute Achievement {achievement_num} in @{plan_path.name} following strict methodology.
 
@@ -667,8 +791,48 @@ Examples:
         action="store_true",
         help="Copy prompt to clipboard",
     )
+    parser.add_argument(
+        "--subplan-only",
+        action="store_true",
+        help="Create SUBPLAN only (no EXECUTION_TASK files) - for create mode",
+    )
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="Batch create SUBPLANs for multiple achievements (requires parallel.json)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview batch creation without creating files (use with --batch)",
+    )
 
     args = parser.parse_args()
+
+    # Handle --batch flag (Achievement 2.2)
+    if args.batch:
+        from LLM.scripts.generation.batch_subplan import batch_create_subplans
+        
+        # Resolve plan path
+        if args.file.startswith("@"):
+            file_type = "PLAN" if "PLAN_" in args.file else "FILE"
+        else:
+            file_type = "FILE"
+        
+        plan_path = resolve_plan_path(args.file, file_type=file_type)
+        
+        # Run batch creation
+        result = batch_create_subplans(
+            plan_path=plan_path,
+            dry_run=args.dry_run
+        )
+        
+        # Print result
+        print("\n" + "="*80)
+        print(result)
+        print("="*80)
+        
+        return 0
 
     # Resolve path with @ shorthand support (Bug #9 fix)
     # Determine file type based on mode
@@ -700,7 +864,7 @@ Examples:
         if not args.achievement:
             print("Error: --achievement required for create mode", file=sys.stderr)
             sys.exit(1)
-        prompt = generate_create_prompt(file_path, args.achievement)
+        prompt = generate_create_prompt(file_path, args.achievement, subplan_only=args.subplan_only)
     elif mode == "continue":
         prompt = generate_continue_prompt(file_path)
     elif mode == "synthesize":

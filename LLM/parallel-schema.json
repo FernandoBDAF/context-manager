@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parallel Execution Dependency Tree",
+  "description": "Schema for parallel.json files that define achievement dependency trees for parallel execution",
+  "type": "object",
+  "required": ["plan_name", "parallelization_level", "achievements"],
+  "properties": {
+    "plan_name": {
+      "type": "string",
+      "description": "Name of the PLAN (e.g., PARALLEL-EXECUTION-AUTOMATION)"
+    },
+    "parallelization_level": {
+      "type": "string",
+      "enum": ["level_1", "level_2", "level_3"],
+      "description": "Level of parallelization: level_1 (same achievement), level_2 (same priority), level_3 (cross-priority)"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date when parallel.json was created"
+    },
+    "achievements": {
+      "type": "array",
+      "description": "Array of achievements with dependency information",
+      "items": {
+        "type": "object",
+        "required": ["achievement_id", "dependencies", "status"],
+        "properties": {
+          "achievement_id": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+$",
+            "description": "Achievement number (e.g., 1.1, 2.3)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Achievement title"
+          },
+          "dependencies": {
+            "type": "array",
+            "description": "Array of achievement IDs that this achievement depends on",
+            "items": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+$"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "subplan_created",
+              "execution_created",
+              "in_progress",
+              "complete",
+              "failed",
+              "skipped"
+            ],
+            "description": "Achievement status (derived from filesystem at runtime, not persisted)"
+          },
+          "estimated_hours": {
+            "type": "number",
+            "description": "Estimated time in hours"
+          },
+          "actual_hours": {
+            "type": "number",
+            "description": "Actual time spent (optional, for tracking)"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When execution started (optional)"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When execution completed (optional)"
+          },
+          "executor": {
+            "type": "string",
+            "description": "Who is executing this achievement (optional, for multi-executor scenarios)"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about parallelization strategy"
+    }
+  }
+}

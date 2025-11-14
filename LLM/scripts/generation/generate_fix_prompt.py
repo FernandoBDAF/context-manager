@@ -38,22 +38,22 @@ from LLM.scripts.generation.utils import get_achievement_status, copy_to_clipboa
 def extract_fix_issues(fix_file_path: Path) -> Dict[str, any]:
     """
     Extract issues and code references from FIX_XX.md file.
-    
+
     Parses FIX feedback file to extract:
     - Metadata (reviewer, date, status)
     - Critical issues (with titles and descriptions)
     - Minor issues (bullet list)
     - Code references (@Python (779-1075), @TypeScript (45-120), etc.)
     - What worked well (positive feedback)
-    
+
     **Parser Strategy**:
     - Uses regex for markdown section extraction
     - Handles variations in formatting (some FIX files might omit sections)
     - Returns empty lists for missing sections (graceful handling)
-    
+
     Args:
         fix_file_path: Path to FIX_XX.md file
-    
+
     Returns:
         Dictionary with extracted data:
         {
@@ -65,19 +65,19 @@ def extract_fix_issues(fix_file_path: Path) -> Dict[str, any]:
             "review_date": str,
             "status": str
         }
-    
+
     Example:
         >>> issues = extract_fix_issues(Path("FIX_21.md"))
         >>> len(issues["critical_issues"])
         3
         >>> issues["critical_issues"][0]["title"]
         "PRIMARY OBJECTIVE NOT ACHIEVED"
-    
+
     Achievement: 2.9 - FIX Prompt Generation
     """
-    with open(fix_file_path, 'r', encoding='utf-8') as f:
+    with open(fix_file_path, "r", encoding="utf-8") as f:
         content = f.read()
-    
+
     result = {
         "critical_issues": [],
         "minor_issues": [],
@@ -85,28 +85,28 @@ def extract_fix_issues(fix_file_path: Path) -> Dict[str, any]:
         "what_worked_well": [],
         "reviewer": "Unknown",
         "review_date": "Unknown",
-        "status": "NEEDS FIXES"
+        "status": "NEEDS FIXES",
     }
-    
+
     # Extract metadata from header
-    reviewer_match = re.search(r'\*\*Reviewer\*\*:\s*(.+)', content)
+    reviewer_match = re.search(r"\*\*Reviewer\*\*:\s*(.+)", content)
     if reviewer_match:
         result["reviewer"] = reviewer_match.group(1).strip()
-    
-    date_match = re.search(r'\*\*Review Date\*\*:\s*(.+)', content)
+
+    date_match = re.search(r"\*\*Review Date\*\*:\s*(.+)", content)
     if date_match:
         result["review_date"] = date_match.group(1).strip()
-    
-    status_match = re.search(r'\*\*Status\*\*:\s*(.+)', content)
+
+    status_match = re.search(r"\*\*Status\*\*:\s*(.+)", content)
     if status_match:
         result["status"] = status_match.group(1).strip()
-    
+
     # Extract Critical Issues section
     # Format: ### Critical Issues ... #### 1. **Title** ... body text ... #### 2. ...
     critical_section = re.search(
-        r'### Critical Issues.*?\n+(.*?)(?=^### [^#]|^## [^#]|\Z)', 
-        content, 
-        re.DOTALL | re.IGNORECASE | re.MULTILINE
+        r"### Critical Issues.*?\n+(.*?)(?=^### [^#]|^## [^#]|\Z)",
+        content,
+        re.DOTALL | re.IGNORECASE | re.MULTILINE,
     )
     if critical_section:
         critical_text = critical_section.group(1)
@@ -114,54 +114,44 @@ def extract_fix_issues(fix_file_path: Path) -> Dict[str, any]:
         # Pattern: #### 1. **Title** (optional emoji) ... body
         # Capture everything until next #### or end
         issues = re.findall(
-            r'####\s+\d+\.\s+\*\*(.+?)\*\*(?:\s+[⚠️🚨💡🔴]*)?[^\n]*\n+(.*?)(?=^####|\Z)',
+            r"####\s+\d+\.\s+\*\*(.+?)\*\*(?:\s+[⚠️🚨💡🔴]*)?[^\n]*\n+(.*?)(?=^####|\Z)",
             critical_text,
-            re.DOTALL | re.MULTILINE
+            re.DOTALL | re.MULTILINE,
         )
         for title, body in issues:
-            result["critical_issues"].append({
-                "title": title.strip(),
-                "body": body.strip()
-            })
-    
+            result["critical_issues"].append({"title": title.strip(), "body": body.strip()})
+
     # Extract Minor Issues section
     # Format: ### Minor Issues ... - Item 1 ... - Item 2
     minor_section = re.search(
-        r'### Minor Issues.*?\n(.*?)(?=###[^#]|\n---|\Z)',
-        content,
-        re.DOTALL | re.IGNORECASE
+        r"### Minor Issues.*?\n(.*?)(?=###[^#]|\n---|\Z)", content, re.DOTALL | re.IGNORECASE
     )
     if minor_section:
         minor_text = minor_section.group(1)
         # Parse bullet points
-        issues = re.findall(r'^-\s+(.+)$', minor_text, re.MULTILINE)
+        issues = re.findall(r"^-\s+(.+)$", minor_text, re.MULTILINE)
         result["minor_issues"] = [{"text": issue.strip()} for issue in issues]
-    
+
     # Extract code references (@Python, @TypeScript, @JavaScript patterns)
     # Format: @FileType (start-end)
-    code_refs = re.findall(
-        r'@(\w+)\s*\((\d+-\d+)\)',
-        content
-    )
+    code_refs = re.findall(r"@(\w+)\s*\((\d+-\d+)\)", content)
     for file_type, line_range in code_refs:
         result["code_references"].append(f"@{file_type} ({line_range})")
-    
+
     # Remove duplicates from code references
     result["code_references"] = list(set(result["code_references"]))
     result["code_references"].sort()  # Sort for consistent output
-    
+
     # Extract "What Worked Well" section
     # Format: ## What Worked Well ... - Item 1 ... - Item 2
     worked_well_section = re.search(
-        r'## What Worked Well.*?\n(.*?)(?=##[^#]|\n---|\Z)',
-        content,
-        re.DOTALL | re.IGNORECASE
+        r"## What Worked Well.*?\n(.*?)(?=##[^#]|\n---|\Z)", content, re.DOTALL | re.IGNORECASE
     )
     if worked_well_section:
         worked_well_text = worked_well_section.group(1)
-        items = re.findall(r'^-\s+(.+)$', worked_well_text, re.MULTILINE)
+        items = re.findall(r"^-\s+(.+)$", worked_well_text, re.MULTILINE)
         result["what_worked_well"] = [item.strip() for item in items]
-    
+
     return result
 
 
@@ -287,7 +277,7 @@ Now addressing feedback for Achievement {achievement}...
 def generate_fix_prompt(plan_path: Path, achievement_num: str) -> str:
     """
     Generate prompt to address fixes in FIX_XX.md feedback file.
-    
+
     Main entry point for FIX prompt generation. Loads FIX file, extracts
     issues, and formats them into a comprehensive fix prompt with:
     - Reviewer metadata and feedback file reference
@@ -297,35 +287,35 @@ def generate_fix_prompt(plan_path: Path, achievement_num: str) -> str:
     - What worked well (positive acknowledgment)
     - Step-by-step fix action plan
     - FIX_RESOLUTION template for re-review
-    
+
     Args:
         plan_path: Path to PLAN file
         achievement_num: Achievement number (e.g., "2.1")
-    
+
     Returns:
         Formatted fix prompt string
-    
+
     Raises:
         FileNotFoundError: If FIX_XX.md file doesn't exist
-    
+
     Example:
         >>> prompt = generate_fix_prompt(Path("PLAN.md"), "2.1")
         >>> "CRITICAL ISSUES TO FIX" in prompt
         True
-    
+
     Achievement: 2.9 - FIX Prompt Generation
     """
     plan_folder = plan_path.parent
     plan_name = plan_path.stem.replace("PLAN_", "")
     ach_num_clean = achievement_num.replace(".", "")
     fix_file = plan_folder / "execution" / "feedbacks" / f"FIX_{ach_num_clean}.md"
-    
+
     if not fix_file.exists():
         return f"❌ Error: FIX file not found: {fix_file}\n\nExpected file: execution/feedbacks/FIX_{ach_num_clean}.md"
-    
+
     # Extract issues from FIX file
     issues = extract_fix_issues(fix_file)
-    
+
     # Format critical issues
     if issues["critical_issues"]:
         critical_text = ""
@@ -336,7 +326,7 @@ def generate_fix_prompt(plan_path: Path, achievement_num: str) -> str:
         critical_text = critical_text.rstrip("\n\n---\n\n")  # Remove trailing separator
     else:
         critical_text = "(No critical issues specified - check FIX file)"
-    
+
     # Format minor issues section
     if issues["minor_issues"]:
         minor_text = "MINOR ISSUES (Nice to Fix):\n\n"
@@ -345,7 +335,7 @@ def generate_fix_prompt(plan_path: Path, achievement_num: str) -> str:
         minor_text += "\n"
     else:
         minor_text = "(No minor issues specified)\n\n"
-    
+
     # Format code references
     if issues["code_references"]:
         code_refs_text = ""
@@ -354,7 +344,7 @@ def generate_fix_prompt(plan_path: Path, achievement_num: str) -> str:
         code_refs_text += "\nThese code sections need review/modification based on feedback."
     else:
         code_refs_text = "(No specific code references provided)"
-    
+
     # Format what worked well
     if issues["what_worked_well"]:
         worked_well_text = ""
@@ -362,23 +352,23 @@ def generate_fix_prompt(plan_path: Path, achievement_num: str) -> str:
             worked_well_text += f"- {item}\n"
     else:
         worked_well_text = "(See FIX file for positive feedback)"
-    
+
     # Generate action items for critical issues
     critical_action_items = ""
     for i, issue in enumerate(issues["critical_issues"], 1):
         critical_action_items += f"- Fix Critical Issue #{i}: {issue['title']}\n"
     if not critical_action_items:
         critical_action_items = "- Review FIX file for specific requirements\n"
-    
+
     # Generate action items for minor issues
     minor_action_items = ""
     for i, issue in enumerate(issues["minor_issues"], 1):
         # Truncate long issue text for action item
-        issue_preview = issue['text'][:60] + "..." if len(issue['text']) > 60 else issue['text']
+        issue_preview = issue["text"][:60] + "..." if len(issue["text"]) > 60 else issue["text"]
         minor_action_items += f"- Address Minor Issue #{i}: {issue_preview}\n"
     if not minor_action_items:
         minor_action_items = "- Review FIX file for minor improvements\n"
-    
+
     # Fill template
     prompt = FIX_PROMPT_TEMPLATE.format(
         achievement=achievement_num,
@@ -392,16 +382,16 @@ def generate_fix_prompt(plan_path: Path, achievement_num: str) -> str:
         code_references=code_refs_text,
         what_worked_well=worked_well_text,
         critical_action_items=critical_action_items,
-        minor_action_items=minor_action_items
+        minor_action_items=minor_action_items,
     )
-    
+
     return prompt
 
 
 def main():
     """
     CLI entry point for generate_fix_prompt.py.
-    
+
     Supports:
     - @folder shortcuts (e.g., @PROMPT-GENERATOR)
     - Direct PLAN paths
@@ -421,7 +411,7 @@ Workflow:
   2. Extracts issues and code references
   3. Generates structured fix prompt
   4. Copies to clipboard (if --clipboard)
-        """
+        """,
     )
     parser.add_argument("plan_file", help="PLAN file path or @folder shortcut")
     parser.add_argument("achievement", help="Achievement number (e.g., '2.1')")
@@ -429,55 +419,54 @@ Workflow:
         "--clipboard",
         action="store_true",
         help="Copy prompt to clipboard (default: True)",
-        default=True
+        default=True,
     )
-    parser.add_argument(
-        "--no-clipboard",
-        action="store_true",
-        help="Disable clipboard copy"
-    )
-    
+    parser.add_argument("--no-clipboard", action="store_true", help="Disable clipboard copy")
+
     args = parser.parse_args()
-    
+
     # Resolve PLAN path (handle @shortcuts)
     plan_path_str = args.plan_file
     if plan_path_str.startswith("@"):
         # Remove @ and .md extension if present
         folder_name = plan_path_str[1:].replace(".md", "")
         from LLM.scripts.generation.utils import resolve_folder_shortcut
+
         plan_path = resolve_folder_shortcut(folder_name)
     else:
         plan_path = Path(plan_path_str)
-    
+
     if not plan_path.exists():
         print(f"❌ Error: PLAN file not found: {plan_path}")
         sys.exit(1)
-    
+
     # Check achievement status
     status = get_achievement_status(args.achievement, plan_path)
-    
+
     if status != "needs_fix":
         print(f"⚠️  Achievement {args.achievement} status: {status}")
         print(f"\nExpected 'needs_fix' but got '{status}'")
-        
+
         if status == "approved":
-            print(f"✅ Achievement is already approved (APPROVED_{args.achievement.replace('.', '')}.md exists)")
+            print(
+                f"✅ Achievement is already approved (APPROVED_{args.achievement.replace('.', '')}.md exists)"
+            )
         elif status == "incomplete":
             print(f"ℹ️  No FIX file found (achievement incomplete)")
             print(f"\nExpected: execution/feedbacks/FIX_{args.achievement.replace('.', '')}.md")
-        
+
         sys.exit(1)
-    
+
     # Generate FIX prompt
     try:
         prompt = generate_fix_prompt(plan_path, args.achievement)
     except Exception as e:
         print(f"❌ Error generating FIX prompt: {e}")
         sys.exit(1)
-    
+
     # Output prompt
     print(prompt)
-    
+
     # Copy to clipboard
     clipboard_enabled = args.clipboard and not args.no_clipboard
     if clipboard_enabled:
@@ -490,4 +479,3 @@ Workflow:
 
 if __name__ == "__main__":
     main()
-

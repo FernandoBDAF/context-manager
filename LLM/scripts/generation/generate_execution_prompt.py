@@ -708,6 +708,48 @@ def copy_to_clipboard(text: str) -> bool:
 
 
 def main():
+    # Check if --batch flag is present (handle before argparse to avoid positional arg issues)
+    if '--batch' in sys.argv:
+        # Simple argument parsing for batch mode
+        dry_run = '--dry-run' in sys.argv
+        
+        # Find the file argument (anything starting with @ or containing PLAN_)
+        file_arg = None
+        for arg in sys.argv[1:]:
+            if arg.startswith('@') or 'PLAN_' in arg or arg.startswith('work-space'):
+                file_arg = arg
+                break
+        
+        if not file_arg:
+            print("Error: File path required for --batch mode", file=sys.stderr)
+            print("Usage: generate_execution_prompt.py --batch [--dry-run] @PLAN_FILE.md", file=sys.stderr)
+            sys.exit(1)
+        
+        # Handle batch creation
+        from LLM.scripts.generation.batch_execution import batch_create_executions
+        
+        # Resolve plan path
+        if file_arg.startswith("@"):
+            file_type = "PLAN" if "PLAN_" in file_arg else "FILE"
+        else:
+            file_type = "FILE"
+        
+        plan_path = resolve_plan_path(file_arg, file_type=file_type)
+        
+        # Run batch creation
+        result = batch_create_executions(
+            plan_path=plan_path,
+            dry_run=dry_run
+        )
+        
+        # Print result
+        print("\n" + "="*80)
+        print(result)
+        print("="*80)
+        
+        return 0
+    
+    # Normal mode: use argparse
     parser = argparse.ArgumentParser(
         description="Generate prompts for EXECUTION lifecycle",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -724,6 +766,10 @@ Examples:
   
   # Parallel execution
   python generate_execution_prompt.py create @SUBPLAN_FEATURE_11.md --execution 01 --parallel
+  
+  # Batch creation
+  python generate_execution_prompt.py --batch @PLAN_FEATURE.md
+  python generate_execution_prompt.py --batch --dry-run @PLAN_FEATURE.md
         """,
     )
 

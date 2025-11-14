@@ -1,0 +1,1 @@
+- create an standalone MCP server and keep the API for the UI.

@@ -133,7 +133,7 @@ class WorkflowDetector:
 
         # Check achievement status for FIX detection (Achievement 2.9 - tri-state model)
         status = get_achievement_status(achievement_num, plan_path)
-        
+
         if status == "needs_fix":
             # Achievement requires fixes before proceeding
             return {
@@ -143,9 +143,9 @@ class WorkflowDetector:
                 "execution_count": 0,
                 "completed_count": 0,
                 "fix_file": f"FIX_{achievement_num.replace('.', '')}.md",
-                "message": "Reviewer feedback requires fixes before proceeding"
+                "message": "Reviewer feedback requires fixes before proceeding",
             }
-        
+
         # Find SUBPLAN file
         subplan_path = find_subplan_for_achievement(feature_name, achievement_num, plan_path)
 

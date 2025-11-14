@@ -32,6 +32,13 @@ from typing import Dict, Optional, List
 # Achievement 3.2: Add caching for performance optimization
 from core.libraries.caching import cached
 
+# Achievement 3.2: Compile regex patterns once at module level for performance
+ACHIEVEMENT_PATTERN = re.compile(r"\*\*Achievement (\d+\.\d+)\*\*:(.+)")
+HANDOFF_PATTERN = re.compile(r"##\s*.*Current Status.*Handoff", re.IGNORECASE)
+ACHIEVEMENT_COUNT_PATTERN = re.compile(r"\*\*Achievement\s+\d+\.\d+\*\*:")
+TIME_PATTERN = re.compile(r"\*\*(?:Time|Actual)\*\*:\s*([\d.]+)\s*hours?")
+ARCHIVE_PATTERN = re.compile(r"\./([a-z0-9-]+)/")
+
 
 class PlanParser:
     """
@@ -65,14 +72,14 @@ class PlanParser:
         max_size=50,  # Cache up to 50 PLANs
         ttl=300,  # 5 minutes TTL
         key_func=lambda self, plan_path: f"{plan_path}:{os.path.getmtime(plan_path) if plan_path.exists() else 0}",
-        name="plan_cache"
+        name="plan_cache",
     )
     def parse_plan_file(self, plan_path: Path) -> Dict[str, any]:
         """
         Parse PLAN file and extract all structured information.
 
         Achievement 3.2: Cached with mtime-based invalidation for 70% performance improvement.
-        
+
         Parses PLAN markdown structure to extract:
         - Feature name
         - List of achievements with metadata
@@ -99,7 +106,7 @@ class PlanParser:
 
         Used by: generate_prompt(), main()
         Tested: Yes (4 tests in test_core_parsing.py)
-        
+
         Performance: 1-2s → 100-200ms (cached, >80% hit rate for repeated calls)
         """
         # Import Achievement locally to avoid circular imports
@@ -115,7 +122,8 @@ class PlanParser:
         # Parse achievements
         achievements = []
         for i, line in enumerate(lines):
-            if match := re.match(r"\*\*Achievement (\d+\.\d+)\*\*:(.+)", line):
+            # Achievement 3.2: Use pre-compiled pattern for performance
+            if match := ACHIEVEMENT_PATTERN.match(line):
                 ach_num = match.group(1)
                 ach_title = match.group(2).strip()
 
@@ -188,7 +196,8 @@ class PlanParser:
         # Find section start - look for "Current Status & Handoff" header
         for i, line in enumerate(lines):
             # Match variations: "## 📝 Current Status & Handoff", "## Current Status & Handoff", etc.
-            if re.search(r"##\s*.*Current Status.*Handoff", line, re.IGNORECASE):
+            # Achievement 3.2: Use pre-compiled pattern for performance
+            if HANDOFF_PATTERN.search(line):
                 section_start = i
                 break
 
@@ -267,8 +276,8 @@ class PlanParser:
             with open(plan_path, "r", encoding="utf-8") as f:
                 content = f.read()
                 # Count "**Achievement X.Y**:" patterns
-                achievement_pattern = r"\*\*Achievement\s+\d+\.\d+\*\*:"
-                stats["total_achievements"] = len(re.findall(achievement_pattern, content))
+                # Achievement 3.2: Use pre-compiled pattern for performance
+                stats["total_achievements"] = len(ACHIEVEMENT_COUNT_PATTERN.findall(content))
 
             # 2. Count SUBPLANs from filesystem
             plan_folder = Path("work-space/plans") / feature_name
@@ -290,11 +299,8 @@ class PlanParser:
                         with open(exec_file, "r", encoding="utf-8") as f:
                             exec_content = f.read()
                             # Look for "**Time**: X hours" or "**Actual**: X hours" or "**Time**: X.X hours"
-                            time_match = re.search(
-                                r"\*\*(?:Time|Actual)\*\*:\s*([\d.]+)\s*hours?",
-                                exec_content,
-                                re.IGNORECASE,
-                            )
+                            # Achievement 3.2: Use pre-compiled pattern for performance
+                            time_match = TIME_PATTERN.search(exec_content)
                             if time_match:
                                 total_hours += float(time_match.group(1))
                     except Exception:
@@ -370,7 +376,8 @@ class PlanParser:
         """
         for line in lines:
             if "Archive Location" in line and "./" in line:
-                match = re.search(r"\./([a-z0-9-]+)/", line)
+                # Achievement 3.2: Use pre-compiled pattern for performance
+                match = ARCHIVE_PATTERN.search(line)
                 if match:
                     return f"./{match.group(1)}/"
         return "./feature-archive/"

@@ -256,6 +256,62 @@ class InteractiveMenu:
                 # If detection fails, continue without context
                 pass
 
+        # Detect parallel.json (Achievement 2.1 integration)
+        parallel_data = None
+        parallel_json_path = None
+        if len(sys.argv) > 1:
+            try:
+                from LLM.scripts.generation.path_resolution import resolve_plan_path
+                from LLM.scripts.generation.parallel_workflow import (
+                    detect_and_validate_parallel_json,
+                    get_parallel_menu_state,
+                )
+
+                plan_file = sys.argv[1]
+                plan_path = resolve_plan_path(plan_file, file_type="PLAN")
+
+                parallel_json_path, parallel_data = detect_and_validate_parallel_json(
+                    plan_path.parent
+                )
+
+                if parallel_data:
+                    # Show parallel workflow indicator
+                    plan_name = plan_path.stem.replace("PLAN_", "")
+
+                    print("\n" + "=" * 70)
+                    print("🔀 PARALLEL WORKFLOW DETECTED")
+                    print("=" * 70)
+                    print(f"Plan: {plan_name}")
+                    print(
+                        f"Parallelization Level: {parallel_data.get('parallelization_level', 'unknown')}"
+                    )
+                    print(f"Total Achievements: {len(parallel_data.get('achievements', []))}")
+
+                    # Get state-aware information
+                    state = get_parallel_menu_state(parallel_data, plan_path.parent)
+                    progress = state.get("progress", {})
+                    next_available = state.get("next_available", [])
+
+                    print(
+                        f"Progress: {progress.get('complete', 0)}/{progress.get('total', 0)} complete ({progress.get('percentage', 0)}%)"
+                    )
+                    print(f"Remaining: {progress.get('remaining', 0)} achievements")
+
+                    # Show parallel opportunities
+                    if next_available:
+                        print(f"\n💡 PARALLELIZATION OPPORTUNITY:")
+                        print(f"   {len(next_available)} achievements can run in parallel NOW")
+                        ach_ids = [a.get("achievement_id", "?") for a in next_available[:5]]
+                        print(f"   Achievements: {', '.join(ach_ids)}")
+                        if len(next_available) > 5:
+                            print(f"   ... and {len(next_available) - 5} more")
+                        print(f"\n   → Use option 6 to access Parallel Execution Menu")
+
+                    print("=" * 70)
+            except Exception:
+                # If parallel detection fails, continue without it
+                pass
+
         print("\n" + "=" * 70)
         print("🎯 What would you like to do?")
         print("=" * 70)
@@ -297,9 +353,11 @@ class InteractiveMenu:
         print("2. Generate prompt for specific achievement")
         print("3. View all available achievements")
         print("4. Copy prompt to clipboard")
-        print("5. Exit\n")
+        print("5. Run parallel discovery analysis")
+        print("6. Access Parallel Execution Menu")
+        print("7. Exit\n")
 
-        choice = input("Enter choice (1-5, default 1): ").strip() or "1"
+        choice = input("Enter choice (1-7, default 1): ").strip() or "1"
 
         if choice == "1":
             # Next achievement (default)
@@ -342,6 +400,72 @@ class InteractiveMenu:
                 print("❌ Error: PLAN file required")
                 sys.exit(1)
         elif choice == "5":
+            # Run parallel discovery analysis
+            if len(sys.argv) > 1:
+                plan_file = sys.argv[1]
+                print("\n" + "=" * 70)
+                print("🔀 Parallel Discovery Analysis")
+                print("=" * 70)
+                print("\nThis will analyze your PLAN for parallel execution opportunities.")
+                print("It will generate a parallel.json file describing which achievements")
+                print("can be executed in parallel.\n")
+
+                # Extract plan name from file
+                plan_name = plan_file.lstrip("@").replace("PLAN_", "").replace(".md", "")
+
+                print("📋 Command to run:")
+                print(f"\n  python LLM/scripts/generation/generate_prompt.py \\")
+                print(f"      @PLAN_{plan_name}.md \\")
+                print(f"      --parallel-upgrade\n")
+
+                run_now = input("Run parallel discovery now? (y/N): ").strip().lower()
+
+                if run_now == "y":
+                    # Run parallel discovery
+                    sys.argv = [sys.argv[0], plan_file, "--parallel-upgrade"]
+                    return  # Will execute --parallel-upgrade
+                else:
+                    print("\n💡 TIP: Copy the command above and run it when ready.")
+                    print("After generating parallel.json, you can use batch operations:")
+                    print("  - Batch create SUBPLANs: generate_subplan_prompt.py --batch")
+                    print("  - Batch create EXECUTIONs: generate_execution_prompt.py --batch")
+                    sys.exit(0)
+            else:
+                print("❌ Error: PLAN file required")
+                sys.exit(1)
+        elif choice == "6":
+            # Access Parallel Execution Menu
+            if parallel_data and len(sys.argv) > 1:
+                from LLM.scripts.generation.parallel_workflow import (
+                    show_parallel_menu,
+                    handle_parallel_menu_selection,
+                )
+                from LLM.scripts.generation.path_resolution import resolve_plan_path
+
+                plan_file = sys.argv[1]
+                plan_path = resolve_plan_path(plan_file, file_type="PLAN")
+                plan_name = plan_path.stem.replace("PLAN_", "")
+
+                print("\n🔀 Opening Parallel Execution Menu...")
+
+                while True:
+                    menu_choice = show_parallel_menu(parallel_data, plan_name, plan_path.parent)
+                    handle_parallel_menu_selection(
+                        menu_choice, parallel_data, plan_name, plan_path.parent
+                    )
+                    # Exit on "Back to Main Menu" (option 5 or 6 depending on state)
+                    if menu_choice in ["5", "6"]:
+                        break
+
+                # Return to pre-execution menu
+                print("\n↩️  Returning to main menu...")
+                return self.show_pre_execution_menu()
+            else:
+                print("\n❌ No parallel.json found for this PLAN")
+                print("💡 Use option 5 to run parallel discovery analysis first")
+                print()
+                return self.show_pre_execution_menu()
+        elif choice == "7":
             # Exit
             sys.exit(0)
         else:

@@ -52,6 +52,7 @@ raise PlanNotFoundError(
 ```
 
 **Output**:
+
 ```
 ❌ ERROR: PLAN file not found: FEATURE-NAME
 
@@ -84,6 +85,7 @@ raise InvalidAchievementFormatError(
 ```
 
 **Output**:
+
 ```
 ❌ ERROR: Invalid achievement format: '2'
 
@@ -157,6 +159,7 @@ if not re.match(r'^\d+\.\d+$', achievement_num):
 ### Validation Rules
 
 Available from `core.libraries.validation`:
+
 - `NotEmpty()` - Value cannot be None or empty
 - `MinLength(n)` - Minimum length for strings/lists
 - `MaxLength(n)` - Maximum length for strings/lists
@@ -171,6 +174,7 @@ Available from `core.libraries.validation`:
 ### Implementation
 
 Error messages are automatically color-coded:
+
 - **Red**: Error messages
 - **Blue**: Context details
 - **Yellow**: Suggestions and fixes
@@ -209,16 +213,16 @@ error_message = format_error_with_suggestions(e, use_colors=False)
 def main():
     try:
         # ... main logic ...
-        
+
     except Exception as e:
         from core.libraries.error_handling import ApplicationError
         from LLM.scripts.generation.exceptions import format_error_with_suggestions
-        
+
         # Structured error handling
         if isinstance(e, ApplicationError):
             error_message = format_error_with_suggestions(e)
             print(error_message, file=sys.stderr)
-            
+
             # Auto-copy error to clipboard
             try:
                 from LLM.scripts.generation.path_resolution import copy_to_clipboard_safe
@@ -231,7 +235,7 @@ def main():
             error_type = type(e).__name__
             error_msg = str(e) or "(no message)"
             print(f"❌ ERROR: {error_type}: {error_msg}", file=sys.stderr)
-        
+
         sys.exit(1)
 ```
 
@@ -248,7 +252,7 @@ def test_plan_not_found():
     """Test PlanNotFoundError is raised with correct context."""
     with pytest.raises(PlanNotFoundError) as exc_info:
         resolve_folder_shortcut("NONEXISTENT")
-    
+
     error = exc_info.value
     assert "NONEXISTENT" in str(error)
     assert "suggestions" in error.context
@@ -324,6 +328,7 @@ Always test that errors are raised correctly and include proper context.
 ### Migrating Old Error Handling
 
 **Before**:
+
 ```python
 try:
     result = operation()
@@ -333,6 +338,7 @@ except Exception as e:
 ```
 
 **After**:
+
 ```python
 from core.libraries.error_handling import ApplicationError
 
@@ -423,4 +429,3 @@ Potential enhancements for future achievements:
 - **Core Libraries**: `core/libraries/error_handling/`, `core/libraries/logging/`, `core/libraries/validation/`
 - **Custom Exceptions**: `LLM/scripts/generation/exceptions.py`
 - **Tests**: `tests/LLM/scripts/generation/test_exceptions.py`
-
