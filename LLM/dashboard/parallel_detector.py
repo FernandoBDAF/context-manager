@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from core.libraries.logging import get_logger
+from LLM.core.libraries.logging import get_logger
 
 # Import batch tools for parallel detection
 from LLM.scripts.generation.batch_subplan import filter_by_dependency_level

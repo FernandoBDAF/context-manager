@@ -20,7 +20,7 @@ from rich.prompt import Prompt
 from rich.table import Table
 from rich.text import Text
 
-from core.libraries.logging import get_logger, set_log_context
+from LLM.core.libraries.logging import get_logger, set_log_context
 from LLM.dashboard.base_dashboard import BaseDashboard
 from LLM.dashboard.models import PlanState
 from LLM.dashboard.plan_discovery import PlanDiscovery

@@ -21,7 +21,7 @@ from core.models.graphrag import (
     RelationshipModel,
     EntityType,
 )
-from core.libraries.ontology.loader import load_ontology, clear_cache
+from LLM.core.libraries.ontology.loader import load_ontology, clear_cache
 from openai import OpenAI
 
 

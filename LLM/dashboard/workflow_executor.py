@@ -24,7 +24,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm
 
-from core.libraries.logging import get_logger
+from LLM.core.libraries.logging import get_logger
 from LLM.dashboard.models import ExecutionResult, WorkflowType, WorkflowState
 
 logger = get_logger(__name__)

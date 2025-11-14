@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Dict, Optional, List
 
 # Achievement 3.2: Add caching for performance optimization
-from core.libraries.caching import cached
+from LLM.core.libraries.caching import cached
 
 # Achievement 3.2: Compile regex patterns once at module level for performance
 ACHIEVEMENT_PATTERN = re.compile(r"\*\*Achievement (\d+\.\d+)\*\*:(.+)")

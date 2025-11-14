@@ -8,7 +8,7 @@ Created: 2025-11-14
 Achievement: 0.4 - Library Integration & Production Patterns
 """
 
-from core.libraries.metrics import Counter, Histogram, Gauge, MetricRegistry
+from LLM.core.libraries.metrics import Counter, Histogram, Gauge, MetricRegistry
 
 
 # Dashboard action metrics

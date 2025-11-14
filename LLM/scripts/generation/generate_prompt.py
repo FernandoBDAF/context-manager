@@ -279,12 +279,12 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 # Achievement 3.1: Add structured logging (after sys.path setup)
-from core.libraries.logging import get_logger, set_log_context
+from LLM.core.libraries.logging import get_logger, set_log_context
 
 logger = get_logger(__name__)
 
 # Achievement 3.2: Add metrics for performance monitoring
-from core.libraries.metrics import Counter, Histogram, Timer, MetricRegistry
+from LLM.core.libraries.metrics import Counter, Histogram, Timer, MetricRegistry
 
 # Define metrics
 prompt_generation_counter = Counter(
@@ -1766,7 +1766,7 @@ SUBPLAN has {exec_count} planned EXECUTION(s). {completed_count} complete, next 
 
     # Achievement 3.1: Structured error handling with actionable suggestions
     except Exception as e:
-        from core.libraries.error_handling import ApplicationError
+        from LLM.core.libraries.error_handling import ApplicationError
         from LLM.scripts.generation.exceptions import format_error_with_suggestions
 
         # If it's an ApplicationError (including our custom exceptions), format it nicely

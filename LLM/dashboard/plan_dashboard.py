@@ -26,7 +26,7 @@ from LLM.dashboard.state_detector import StateDetector
 from LLM.dashboard.action_executor import ActionExecutor
 from LLM.dashboard.workflow_executor import WorkflowExecutor
 from LLM.dashboard.parallel_detector import ParallelDetector, ParallelGroup
-from core.libraries.logging import get_logger
+from LLM.core.libraries.logging import get_logger
 
 logger = get_logger(__name__)
 

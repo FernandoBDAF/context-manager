@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Callable, Dict, Optional, Set
 from datetime import datetime
 
-from core.libraries.logging import get_logger
+from LLM.core.libraries.logging import get_logger
 
 logger = get_logger(__name__)
 

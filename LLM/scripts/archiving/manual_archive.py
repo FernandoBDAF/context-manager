@@ -39,10 +39,10 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 # Core library imports
-from core.libraries.logging import setup_logging, get_logger, log_operation_start, log_operation_complete
-from core.libraries.error_handling import handle_errors, error_context, ConfigurationError
-from core.libraries.metrics import Counter, Histogram, MetricRegistry
-from core.libraries.validation import validate_value, NotEmpty, Pattern, ValidationError
+from LLM.core.libraries.logging import setup_logging, get_logger, log_operation_start, log_operation_complete
+from LLM.core.libraries.error_handling import handle_errors, error_context, ConfigurationError
+from LLM.core.libraries.metrics import Counter, Histogram, MetricRegistry
+from LLM.core.libraries.validation import validate_value, NotEmpty, Pattern, ValidationError
 
 # Initialize logging
 logger = get_logger(__name__)

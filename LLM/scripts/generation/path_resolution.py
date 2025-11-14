@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Optional, List
 
 # Achievement 3.1: Import structured error handling
-from core.libraries.error_handling import handle_errors
+from LLM.core.libraries.error_handling import handle_errors
 from LLM.scripts.generation.exceptions import (
     PlanNotFoundError,
     InvalidPathError,
@@ -88,7 +88,7 @@ def resolve_folder_shortcut(folder_name: str) -> Path:
 
     # Achievement 3.1: Ambiguous folder match - provide clear context
     if len(matching_folders) > 1:
-        from core.libraries.error_handling import ApplicationError
+        from LLM.core.libraries.error_handling import ApplicationError
 
         raise ApplicationError(
             f"Multiple folders match '@{folder_name}'",
@@ -117,7 +117,7 @@ def resolve_folder_shortcut(folder_name: str) -> Path:
 
     # Achievement 3.1: Multiple PLAN files (ambiguous)
     if len(plan_files) > 1:
-        from core.libraries.error_handling import ApplicationError
+        from LLM.core.libraries.error_handling import ApplicationError
 
         raise ApplicationError(
             f"Multiple PLAN files found in {folder.name}",
@@ -204,7 +204,7 @@ def resolve_plan_path(path_str: str, file_type: str = "PLAN") -> Path:
 
     # Achievement 3.1: File not found - use appropriate exception
     if not matching_files:
-        from core.libraries.error_handling import ApplicationError
+        from LLM.core.libraries.error_handling import ApplicationError
 
         raise ApplicationError(
             f"{file_type} file not found: @{shorthand}",
@@ -223,7 +223,7 @@ def resolve_plan_path(path_str: str, file_type: str = "PLAN") -> Path:
 
     # Achievement 3.1: Multiple matches - provide clear guidance
     if len(matching_files) > 1:
-        from core.libraries.error_handling import ApplicationError
+        from LLM.core.libraries.error_handling import ApplicationError
 
         raise ApplicationError(
             f"Multiple files match '@{shorthand}'",

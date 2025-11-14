@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 from typing import List, Optional
 
-from core.libraries.logging import get_logger
+from LLM.core.libraries.logging import get_logger
 from LLM.dashboard.models import (
     AchievementStatus,
     PlanState,

@@ -94,7 +94,7 @@ class TestMetrics:
 
     def test_metrics_are_registered(self):
         """Test that performance metrics are registered with registry."""
-        from core.libraries.metrics import MetricRegistry
+        from LLM.core.libraries.metrics import MetricRegistry
 
         registry = MetricRegistry.get_instance()
 
@@ -109,7 +109,7 @@ class TestMetrics:
 
     def test_counter_increments(self):
         """Test Counter metric increments correctly."""
-        from core.libraries.metrics import Counter
+        from LLM.core.libraries.metrics import Counter
 
         counter = Counter("test_counter", labels=["status"])
 
@@ -124,7 +124,7 @@ class TestMetrics:
 
     def test_histogram_observes_duration(self):
         """Test Histogram metric records durations."""
-        from core.libraries.metrics import Histogram
+        from LLM.core.libraries.metrics import Histogram
 
         histogram = Histogram("test_duration", labels=["operation"])
 

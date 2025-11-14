@@ -17,7 +17,7 @@ Usage:
 
 from pathlib import Path
 from typing import List, Optional
-from core.libraries.error_handling import ApplicationError
+from LLM.core.libraries.error_handling import ApplicationError
 
 
 class PlanNotFoundError(ApplicationError):

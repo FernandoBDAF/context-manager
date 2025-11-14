@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import List
 from rich.console import Console
 
-from core.libraries.logging import get_logger
+from LLM.core.libraries.logging import get_logger
 
 logger = get_logger(__name__)
 
